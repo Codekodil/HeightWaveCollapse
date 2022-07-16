@@ -19,3 +19,7 @@ wave.AddCell('╠', '╦', '╣', '╩', false, true, true, true);
 wave.AddCell('╬', true, true, true, true);
 
 var wf = wave.Bake();
+
+var list = wf.NewWaveList(10);
+list[2] = ('╠', 3);
+Console.WriteLine(list[2]);
