@@ -139,9 +139,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="WaveField.h" />
+    <ClInclude Include="WaveFunction.h" />
     <ClInclude Include="WaveList.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="WaveField.cpp" />
+    <ClCompile Include="WaveFunction.cpp" />
     <ClCompile Include="WaveList.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

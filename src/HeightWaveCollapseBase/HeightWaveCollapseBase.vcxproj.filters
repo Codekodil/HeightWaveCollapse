@@ -2,8 +2,12 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="WaveList.h" />
+    <ClInclude Include="WaveFunction.h" />
+    <ClInclude Include="WaveField.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WaveList.cpp" />
+    <ClCompile Include="WaveFunction.cpp" />
+    <ClCompile Include="WaveField.cpp" />
   </ItemGroup>
 </Project>
