@@ -5,7 +5,9 @@ using namespace std;
 
 WaveList::WaveList(int size)
 {
-	_size = max(size, 1);
+	_size = max(size, 0);
+	if (_size == 0)
+		return;
 	_ids = make_unique<int[]>(_size);
 	_heights = make_unique<int[]>(_size);
 }

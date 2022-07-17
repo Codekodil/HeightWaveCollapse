@@ -20,8 +20,18 @@ wave.AddCell('╬', true, true, true, true);
 
 var wf = wave.Bake();
 
-var field = new WaveField<char>(wf, 10, 10);
+var field = new WaveField<char>(wf, 10, 10, (x, y) =>
+{
+	var list = new WaveList<char>(wf, wf.CellValues.Count);
+	for (int i = 0; i < list.Size; i++)
+		list[i] = (wf.CellValues[i], 0);
+	return list;
+});
+field.AddChunk(0, 0);
+field.AddChunk(1, 0);
 
 var list = new WaveList<char>(wf, 10);
 list[2] = ('╠', 3);
+list[3] = ('═', 4);
 Console.WriteLine(list[2]);
+Console.WriteLine(list[3]);
