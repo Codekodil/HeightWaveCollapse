@@ -2,7 +2,7 @@
 
 #include <unordered_set>
 #include <memory>
-#include "PairHash.h"
+#include "Point.h"
 
 namespace HeightWaveCollapseBase
 {
@@ -10,9 +10,9 @@ namespace HeightWaveCollapseBase
 	{
 	public:
 		WaveChunk(int width, int height);
-		std::unordered_set<std::pair<int, int>, PairHash>& At(int x, int y);
+		PointList& At(int x, int y);
 	private:
 		int _width, _height;
-		std::unique_ptr<std::unordered_set<std::pair<int, int>, PairHash>[]> _possibilities;
+		std::unique_ptr<PointList[]> _possibilities;
 	};
 }

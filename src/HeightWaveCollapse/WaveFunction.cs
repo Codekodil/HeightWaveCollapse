@@ -3,11 +3,11 @@ using System.Runtime.InteropServices;
 
 namespace HeightWaveCollapse
 {
-	public class WaveFunction<TCell> where TCell : notnull
+	public sealed class WaveFunction<TCell> where TCell : notnull
 	{
 		public IReadOnlyList<TCell> CellValues { get; }
 		private readonly Dictionary<TCell, int> _indices;
-		private readonly IntPtr _nativeFunction;
+		internal readonly IntPtr _nativeFunction;
 		internal WaveFunction(Dictionary<TCell, (
 						HashSet<(TCell cell, int height)> left,
 						HashSet<(TCell cell, int height)> up,

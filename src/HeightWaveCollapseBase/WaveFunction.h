@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "WaveList.h"
+#include "Point.h"
 
 namespace HeightWaveCollapseBase
 {
@@ -10,8 +11,9 @@ namespace HeightWaveCollapseBase
 	public:
 		WaveFunction(int possibilities);
 		bool SetPossibilities(int index, WaveList* left, WaveList* up, WaveList* right, WaveList* down);
+		bool DirectionContains(int direction, int index, Point value);
 	private:
 		int _possibilities;
-		std::unique_ptr<std::unique_ptr<WaveList>[]>_lefts, _ups, _rights, _downs;
+		std::unique_ptr<PointSet[]>_sets[4];
 	};
 }

@@ -1,8 +1,9 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Collections;
+using System.Runtime.InteropServices;
 
 namespace HeightWaveCollapse
 {
-	public class WaveList<TCell> where TCell : notnull
+	public sealed class WaveList<TCell> : IEnumerable<(TCell value, int height)> where TCell : notnull
 	{
 		public int Size { get; }
 		public WaveFunction<TCell> WaveFunction { get; }
@@ -20,6 +21,23 @@ namespace HeightWaveCollapse
 			_nativeList = NativeWaveList.NewWaveList(Size);
 		}
 
+		public WaveList(WaveFunction<TCell> waveFunction, IEnumerable<(TCell value, int height)> values)
+		{
+			var list = values.ToList();
+			Size = list.Count;
+			WaveFunction = waveFunction;
+			_nativeList = NativeWaveList.NewWaveList(Size);
+			for (int i = 0; i < list.Count; i++)
+				this[i] = list[i];
+		}
+
+		internal WaveList(WaveFunction<TCell> waveFunction, IntPtr native)
+		{
+			Size = NativeWaveList.WaveListGetSize(native);
+			WaveFunction = waveFunction;
+			_nativeList = native;
+		}
+
 		~WaveList()
 		{
 			if (_diposeNative)
@@ -29,7 +47,7 @@ namespace HeightWaveCollapse
 		internal bool SetInUse()
 		{
 			if (InUse) return false;
-			lock(_locker)
+			lock (_locker)
 			{
 				if (InUse) return false;
 				_diposeNative = false;
@@ -38,6 +56,13 @@ namespace HeightWaveCollapse
 		}
 		internal void Free() => _diposeNative = true;
 
+		public IEnumerator<(TCell value, int height)> GetEnumerator()
+		{
+			for (var i = 0; i < Size; i++)
+				yield return this[i];
+		}
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 		public (TCell value, int height) this[int index]
 		{
@@ -76,6 +101,9 @@ namespace HeightWaveCollapse
 
 		[DllImport("HeightWaveCollapseBase")]
 		internal static extern void DeleteWaveList(IntPtr list);
+
+		[DllImport("HeightWaveCollapseBase")]
+		internal static extern int WaveListGetSize(IntPtr list);
 
 		[DllImport("HeightWaveCollapseBase")]
 		internal static extern bool WaveListGet(IntPtr list, int index, out int id, out int height);

@@ -38,6 +38,7 @@ extern "C"
 {
 	__declspec(dllexport) WaveList* __stdcall NewWaveList(int size);
 	__declspec(dllexport) void __stdcall DeleteWaveList(WaveList* list);
+	__declspec(dllexport) int __stdcall WaveListGetSize(WaveList* list);
 	__declspec(dllexport) bool __stdcall WaveListGet(WaveList* list, int index, int& id, int& height);
 	__declspec(dllexport) bool __stdcall WaveListSet(WaveList* list, int index, int id, int height);
 }
@@ -50,6 +51,11 @@ WaveList* __stdcall NewWaveList(int size)
 void __stdcall DeleteWaveList(WaveList* list)
 {
 	delete list;
+}
+
+int __stdcall WaveListGetSize(WaveList* list)
+{
+	return list->GetSize();
 }
 
 bool __stdcall WaveListGet(WaveList* list, int index, int& id, int& height)

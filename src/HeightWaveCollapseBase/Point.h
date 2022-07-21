@@ -1,6 +1,8 @@
 #pragma once
 
-#include <memory>
+#include <unordered_set>
+#include <vector>
+#include <list>
 
 namespace HeightWaveCollapseBase
 {
@@ -12,4 +14,9 @@ namespace HeightWaveCollapseBase
 			return (h1 << 16) ^ (h1 >> 16) ^ h2;
 		}
 	};
+
+	typedef std::pair<int, int> Point;
+	typedef std::unordered_set<Point, PairHash> PointSet;
+	typedef std::vector<Point> PointVector;
+	typedef std::list<Point> PointList;
 }

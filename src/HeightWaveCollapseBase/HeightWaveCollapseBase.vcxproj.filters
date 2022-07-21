@@ -5,12 +5,14 @@
     <ClInclude Include="WaveFunction.h" />
     <ClInclude Include="WaveField.h" />
     <ClInclude Include="WaveChunk.h" />
-    <ClInclude Include="PairHash.h" />
+    <ClInclude Include="Point.h" />
+    <ClInclude Include="CollapsingOrder.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WaveList.cpp" />
     <ClCompile Include="WaveFunction.cpp" />
     <ClCompile Include="WaveField.cpp" />
     <ClCompile Include="WaveChunk.cpp" />
+    <ClCompile Include="CollapsingOrder.cpp" />
   </ItemGroup>
 </Project>

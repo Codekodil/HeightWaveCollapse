@@ -139,13 +139,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="PairHash.h" />
+    <ClInclude Include="CollapsingOrder.h" />
+    <ClInclude Include="Point.h" />
     <ClInclude Include="WaveChunk.h" />
     <ClInclude Include="WaveField.h" />
     <ClInclude Include="WaveFunction.h" />
     <ClInclude Include="WaveList.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CollapsingOrder.cpp" />
     <ClCompile Include="WaveChunk.cpp" />
     <ClCompile Include="WaveField.cpp" />
     <ClCompile Include="WaveFunction.cpp" />
