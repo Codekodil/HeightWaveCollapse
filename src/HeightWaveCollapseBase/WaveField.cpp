@@ -61,7 +61,7 @@ WaveList* WaveField::ListAt(int x, int y)
 	return list;
 }
 
-void WaveField::Collapse(WaveFunction* func)
+void WaveField::Collapse(WaveFunction* func, void (*collapseField)(int x, int y, int& id, int& height))
 {
 
 	PointSet allFields;
@@ -80,7 +80,12 @@ void WaveField::Collapse(WaveFunction* func)
 		auto possibilities = At(next.first, next.second);
 		if (!possibilities || possibilities->size() <= 1)
 			continue;
-		possibilities->erase(++possibilities->begin(), possibilities->end());
+
+		int id, height;
+		collapseField(next.first, next.second, id, height);
+		possibilities->erase(possibilities->begin(), possibilities->end());
+		if (id >= 0)
+			possibilities->push_back({ id, height });
 		PointSet sides;
 		sides.insert({ next.first - 1, next.second });
 		sides.insert({ next.first, next.second + 1 });
@@ -154,7 +159,7 @@ extern "C"
 	__declspec(dllexport) void __stdcall DeleteWaveField(WaveField* field);
 	__declspec(dllexport) bool __stdcall WaveFieldAddChunk(WaveField* field, int chunkX, int chunkY, WaveList* (*initCell)(int x, int y));
 	__declspec(dllexport) WaveList* __stdcall WaveFieldListAt(WaveField* field, int x, int y);
-	__declspec(dllexport) void __stdcall WaveFieldCollapse(WaveField* field, WaveFunction* func);
+	__declspec(dllexport) void __stdcall WaveFieldCollapse(WaveField* field, WaveFunction* func, void (*collapseField)(int x, int y, int& id, int& height));
 }
 
 WaveField* __stdcall NewWaveField(int chunkWidth, int chunkHeight)
@@ -177,7 +182,7 @@ WaveList* __stdcall WaveFieldListAt(WaveField* field, int x, int y)
 	return field->ListAt(x, y);
 }
 
-void __stdcall WaveFieldCollapse(WaveField* field, WaveFunction* func)
+void __stdcall WaveFieldCollapse(WaveField* field, WaveFunction* func, void (*collapseField)(int x, int y, int& id, int& height))
 {
-	field->Collapse(func);
+	field->Collapse(func, collapseField);
 }

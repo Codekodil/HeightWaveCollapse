@@ -25,6 +25,10 @@ namespace HeightWaveCollapse
 		}
 
 		protected abstract WaveList<TCell> CellInitializer(int x, int y);
+		protected virtual (TCell value, int height) CollapseCell(int x, int y, WaveList<TCell> possibilities)
+		{
+			return possibilities[Math.Abs(Tuple.Create(x, y).GetHashCode()) % possibilities.Size];
+		}
 
 		public bool AddChunk(int chunkX, int chunkY)
 		{
@@ -70,8 +74,36 @@ namespace HeightWaveCollapse
 
 		public void Collapse()
 		{
+			var exceptions = new List<Exception>();
 			lock (_locker)
-				NativeWaveField.WaveFieldCollapse(_nativeField, WaveFunction._nativeFunction);
+				NativeWaveField.WaveFieldCollapse(_nativeField, WaveFunction._nativeFunction, CollapseField);
+			if (exceptions.Count > 0)
+				throw new AggregateException(exceptions);
+
+			void CollapseField(int x, int y, out int id, out int height)
+			{
+				try
+				{
+					var possibilities = PossibilitiesAt(x, y);
+					if (possibilities == null)
+					{
+						id = -1;
+						height = 0;
+						return;
+					}
+					var result = CollapseCell(x, y, possibilities);
+					if (!WaveFunction.TryGetIndex(result.value, out var index))
+						throw new InvalidOperationException($"Invalid cell id {result.value}");
+					id = index;
+					height = result.height;
+				}
+				catch (Exception ex)
+				{
+					exceptions.Add(new Exception($"Collapse Exception at {x}/{y}", ex));
+					id = -1;
+					height = 0;
+				}
+			}
 		}
 	}
 
@@ -91,7 +123,9 @@ namespace HeightWaveCollapse
 		[DllImport("HeightWaveCollapseBase")]
 		internal static extern IntPtr WaveFieldListAt(IntPtr field, int x, int y);
 
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		internal delegate void CollapseFieldDelegate(int x, int y, out int id, out int height);
 		[DllImport("HeightWaveCollapseBase")]
-		internal static extern void WaveFieldCollapse(IntPtr field, IntPtr func);
+		internal static extern void WaveFieldCollapse(IntPtr field, IntPtr func, [MarshalAs(UnmanagedType.FunctionPtr)] CollapseFieldDelegate ccollapseField);
 	}
 }

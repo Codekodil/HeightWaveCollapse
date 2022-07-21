@@ -17,7 +17,7 @@ namespace HeightWaveCollapseBase
 		bool AddChunk(int chunkX, int chunkY, WaveList* (*initCell)(int x, int y));
 		std::list<std::pair<int, int>>* At(int x, int y);
 		WaveList* ListAt(int x, int y);
-		void Collapse(WaveFunction* func);
+		void Collapse(WaveFunction* func, void (*collapseField)(int x, int y, int& id, int& height));
 	private:
 		int _chunkWidth, _chunkHeight;
 		std::unordered_map<Point, std::unique_ptr<WaveChunk>, PairHash> _chunks;
