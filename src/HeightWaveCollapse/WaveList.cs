@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace HeightWaveCollapse
 {
-	public sealed class WaveList<TCell> : IEnumerable<(TCell value, int height)> where TCell : notnull
+	public sealed class WaveList<TCell> : IEnumerable<(TCell Value, int Height)> where TCell : notnull
 	{
 		public int Size { get; }
 		public WaveFunction<TCell> WaveFunction { get; }
@@ -21,7 +21,7 @@ namespace HeightWaveCollapse
 			_nativeList = NativeWaveList.NewWaveList(Size);
 		}
 
-		public WaveList(WaveFunction<TCell> waveFunction, IEnumerable<(TCell value, int height)> values)
+		public WaveList(WaveFunction<TCell> waveFunction, IEnumerable<(TCell Value, int Height)> values)
 		{
 			var list = values.ToList();
 			Size = list.Count;
@@ -56,7 +56,7 @@ namespace HeightWaveCollapse
 		}
 		internal void Free() => _diposeNative = true;
 
-		public IEnumerator<(TCell value, int height)> GetEnumerator()
+		public IEnumerator<(TCell Value, int Height)> GetEnumerator()
 		{
 			for (var i = 0; i < Size; i++)
 				yield return this[i];
@@ -64,7 +64,7 @@ namespace HeightWaveCollapse
 
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-		public (TCell value, int height) this[int index]
+		public (TCell Value, int Height) this[int index]
 		{
 			get
 			{
@@ -85,9 +85,9 @@ namespace HeightWaveCollapse
 				{
 					if (InUse)
 						throw new InvalidOperationException("can not access lists that are in use");
-					if (!WaveFunction.TryGetIndex(value.value, out var i))
-						throw new KeyNotFoundException($"Invalid cell value [{value.value}]");
-					if (!NativeWaveList.WaveListSet(_nativeList, index, i, value.height))
+					if (!WaveFunction.TryGetIndex(value.Value, out var i))
+						throw new KeyNotFoundException($"Invalid cell value [{value.Value}]");
+					if (!NativeWaveList.WaveListSet(_nativeList, index, i, value.Height))
 						throw new IndexOutOfRangeException();
 				}
 			}

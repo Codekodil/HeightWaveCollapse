@@ -3,8 +3,11 @@
 	public enum EEdge
 	{
 		None,
-		Connect,
-		Down,
-		MaybeDown
+		TreeCW,
+		TreeCCW,
+		CliffTransition,
+		CliffCW,
+		CliffCCW,
+		StairTransition
 	}
 }

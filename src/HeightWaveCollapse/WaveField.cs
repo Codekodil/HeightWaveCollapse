@@ -9,6 +9,7 @@ namespace HeightWaveCollapse
 		public WaveFunction<TCell> WaveFunction { get; }
 		private readonly IntPtr _nativeField;
 		private readonly object _locker = new object();
+		private readonly HashSet<(int X, int Y)> _chunks = new HashSet<(int X, int Y)>();
 		public WaveField(WaveFunction<TCell> waveFunction, int chunkWidth, int chunkHeight)
 		{
 			if (chunkWidth <= 0) throw new ArgumentOutOfRangeException(nameof(chunkWidth));
@@ -25,7 +26,7 @@ namespace HeightWaveCollapse
 		}
 
 		protected abstract WaveList<TCell> CellInitializer(int x, int y);
-		protected virtual (TCell value, int height) CollapseCell(int x, int y, WaveList<TCell> possibilities)
+		protected virtual (TCell Value, int Height) CollapseCell(int x, int y, WaveList<TCell> possibilities)
 		{
 			return possibilities[Math.Abs(Tuple.Create(x, y).GetHashCode()) % possibilities.Size];
 		}
@@ -35,7 +36,10 @@ namespace HeightWaveCollapse
 			var exceptions = new List<Exception>();
 			bool result;
 			lock (_locker)
+			{
 				result = NativeWaveField.WaveFieldAddChunk(_nativeField, chunkX, chunkY, Initialize);
+				_chunks.Add((chunkX, chunkY));
+			}
 			if (exceptions.Count > 0)
 				throw new AggregateException(exceptions);
 			return result;
@@ -58,6 +62,21 @@ namespace HeightWaveCollapse
 				var emptyList = new WaveList<TCell>(WaveFunction, 0);
 				emptyList.SetInUse();
 				return emptyList._nativeList;
+			}
+		}
+
+		public List<(int ChunkX, int ChunkY)> GetChunks()
+		{
+			lock (_locker)
+				return _chunks.ToList();
+		}
+		public IEnumerable<(int X, int Y)> GetCells()
+		{
+			foreach (var (chunkX, chunkY) in GetChunks())
+			{
+				for (var x = 0; x < ChunkWidth; x++)
+					for (var y = 0; y < ChunkHeight; y++)
+						yield return (chunkX * ChunkWidth + x, chunkY * ChunkHeight + y);
 			}
 		}
 
@@ -92,10 +111,10 @@ namespace HeightWaveCollapse
 						return;
 					}
 					var result = CollapseCell(x, y, possibilities);
-					if (!WaveFunction.TryGetIndex(result.value, out var index))
-						throw new InvalidOperationException($"Invalid cell id {result.value}");
+					if (!WaveFunction.TryGetIndex(result.Value, out var index))
+						throw new InvalidOperationException($"Invalid cell id {result.Value}");
 					id = index;
-					height = result.height;
+					height = result.Height;
 				}
 				catch (Exception ex)
 				{

@@ -17,12 +17,16 @@
 			lock (_cells)
 				_cells[value] = (left, up, right, down);
 		}
-		public void AddEdgePairing(TEdge same)
+		public void AddEdgePairing(TEdge same, int deltaHeight = 0)
 		{
 			lock (_edgePairings)
-				_edgePairings.ForceGet((same, same), () => new HashSet<int>()).Add(0);
+			{
+				var set = _edgePairings.ForceGet((same, same), () => new HashSet<int>());
+				set.Add(deltaHeight);
+				set.Add(-deltaHeight);
+			}
 		}
-		public void AddEdgePairing(TEdge left, TEdge right, int deltaHeight)
+		public void AddEdgePairing(TEdge left, TEdge right, int deltaHeight = 0)
 		{
 			lock (_edgePairings)
 			{
