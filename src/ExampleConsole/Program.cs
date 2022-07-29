@@ -21,7 +21,7 @@ newWave.AddTransition(ETileType.Stairs, EEdge.CliffCW, EEdge.StairTransition, EE
 
 var newWf = newWave.Bake();
 
-var newField = new TileField(newWf, Console.WindowWidth / 3, Console.WindowHeight / 2);//Dividing is only there for testing multiple chunks
+var newField = new TileField(newWf, Console.WindowWidth / 3, (Console.WindowHeight - 1) / 2);//Dividing is only there for testing multiple chunks
 newField.AddChunk(0, 0);
 newField.AddChunk(0, 1);
 newField.AddChunk(1, 0);
@@ -29,9 +29,9 @@ newField.AddChunk(1, 1);
 newField.AddChunk(2, 0);
 newField.AddChunk(2, 1);
 
-var displayCache = new Dictionary<(int x, int y), (ConsoleColor bg, ConsoleColor fg, char c)>();
 Task? displayRunning = null;
 var forceDisplayCounter = 0;
+var buffer = new ConsoleBuffer(Console.WindowWidth, Console.WindowHeight - 1); ;
 newField.AfterCollapseCell += Display;
 
 Display();
@@ -43,13 +43,14 @@ displayRunning?.GetAwaiter().GetResult();
 
 void Display()
 {
-	if (forceDisplayCounter++ > 1000)
+	if (forceDisplayCounter++ > 200)
 	{
-		forceDisplayCounter = 0;
 		while (displayRunning != null)
 			Thread.Sleep(10);
 	}
 	if (displayRunning != null) return;
+	var iterations = forceDisplayCounter;
+	forceDisplayCounter = 0;
 
 	var cells = newField.GetCells().Select(c => (c, newField.PossibilitiesAt(c.X, c.Y))).ToList();
 
@@ -57,30 +58,20 @@ void Display()
 	{
 		try
 		{
-			var lastBg = Console.BackgroundColor;
-			var lastFg = Console.ForegroundColor;
 			foreach (var (c, p) in cells)
 			{
-				(ConsoleColor bg, ConsoleColor fg, char c) data;
+				(ConsoleBuffer.Color bg, ConsoleBuffer.Color fg, char c) data;
 
 				if (p == null || p.Size == 0)
-					data = (ConsoleColor.Black, ConsoleColor.Red, '0');
+					data = (new ConsoleBuffer.Color(0, 0, 0), new ConsoleBuffer.Color(255, 0, 0), '0');
 				else if (p.Size == 1)
 					data = DrawingData(p[0].Value, p[0].Height);
 				else
-					data = (ConsoleColor.Black, p.Size <= 9 ? ConsoleColor.White : ConsoleColor.Gray, Math.Min(p.Size, 9).ToString()[0]);
+					data = (new ConsoleBuffer.Color(0, 0, 0), p.Size <= 9 ? new ConsoleBuffer.Color(255, 255, 255) : new ConsoleBuffer.Color(64, 64, 64), Math.Min(p.Size, 9).ToString()[0]);
 
-				if (displayCache.TryGetValue(c, out var lastData) && lastData == data)
-					continue;
-
-				displayCache[c] = data;
-				Console.SetCursorPosition(c.X, Console.WindowHeight - 1 - c.Y);
-				if (lastBg != data.bg)
-					Console.BackgroundColor = lastBg = data.bg;
-				if (lastFg != data.fg)
-					Console.ForegroundColor = lastFg = data.fg;
-				Console.Write(data.c);
+				buffer[c.X, c.Y] = (data.c, data.fg, data.bg);
 			}
+			buffer.Draw();
 		}
 		finally
 		{
@@ -89,58 +80,62 @@ void Display()
 	});
 }
 
-(ConsoleColor bg, ConsoleColor fg, char c) DrawingData((ETileType Tile, EOrientation Orientation) cell, int height)
+(ConsoleBuffer.Color bg, ConsoleBuffer.Color fg, char c) DrawingData((ETileType Tile, EOrientation Orientation) cell, int height)
 {
 	var heightBg = height == 0 ?
-		ConsoleColor.DarkGreen :
+		new ConsoleBuffer.Color(0, 100, 0) :
 		height == 1 ?
-		ConsoleColor.Green :
+		new ConsoleBuffer.Color(0, 130, 0) :
 		height == 2 ?
-		ConsoleColor.DarkYellow :
-		ConsoleColor.DarkGray;
+		new ConsoleBuffer.Color(0, 160, 0) :
+		new ConsoleBuffer.Color(0, 190, 0);
+	ConsoleBuffer.Color fg;
 	switch (cell.Tile)
 	{
 		case ETileType.Flat: return (heightBg, heightBg, ' ');
-		case ETileType.Shrub: return (heightBg, ConsoleColor.DarkCyan, '#');
+		case ETileType.Shrub: return (heightBg, new ConsoleBuffer.Color(40, 120, 40), '#');
 		case ETileType.Tree:
+			fg = new ConsoleBuffer.Color(190, 90, 60);
 			switch (cell.Orientation)
 			{
-				case EOrientation.CornerUpRight: return (heightBg, ConsoleColor.Cyan, '╚');
-				case EOrientation.CornerDownRight: return (heightBg, ConsoleColor.Cyan, '╔');
-				case EOrientation.CornerDownLeft: return (heightBg, ConsoleColor.Cyan, '╗');
-				case EOrientation.CornerUpLeft: return (heightBg, ConsoleColor.Cyan, '╝');
+				case EOrientation.CornerUpRight: return (heightBg, fg, '╚');
+				case EOrientation.CornerDownRight: return (heightBg, fg, '╔');
+				case EOrientation.CornerDownLeft: return (heightBg, fg, '╗');
+				case EOrientation.CornerUpLeft: return (heightBg, fg, '╝');
 			}
 			break;
 		case ETileType.Cliff:
+			fg = new ConsoleBuffer.Color(0, 0, 0);
 			switch (cell.Orientation)
 			{
-				case EOrientation.CornerUpRight: return (heightBg, ConsoleColor.Black, '╚');
-				case EOrientation.CornerDownRight: return (heightBg, ConsoleColor.Black, '╔');
-				case EOrientation.CornerDownLeft: return (heightBg, ConsoleColor.Black, '╗');
-				case EOrientation.CornerUpLeft: return (heightBg, ConsoleColor.Black, '╝');
+				case EOrientation.CornerUpRight: return (heightBg, fg, '╚');
+				case EOrientation.CornerDownRight: return (heightBg, fg, '╔');
+				case EOrientation.CornerDownLeft: return (heightBg, fg, '╗');
+				case EOrientation.CornerUpLeft: return (heightBg, fg, '╝');
 
-				case EOrientation.TransitionUp: return (heightBg, ConsoleColor.Black, '╩');
-				case EOrientation.TransitionRight: return (heightBg, ConsoleColor.Black, '╠');
-				case EOrientation.TransitionDown: return (heightBg, ConsoleColor.Black, '╦');
-				case EOrientation.TransitionLeft: return (heightBg, ConsoleColor.Black, '╣');
+				case EOrientation.TransitionUp: return (heightBg, fg, '╩');
+				case EOrientation.TransitionRight: return (heightBg, fg, '╠');
+				case EOrientation.TransitionDown: return (heightBg, fg, '╦');
+				case EOrientation.TransitionLeft: return (heightBg, fg, '╣');
 
-				case EOrientation.InnerCornerUpRight: return (heightBg, ConsoleColor.Black, '└');
-				case EOrientation.InnerCornerDownRight: return (heightBg, ConsoleColor.Black, '┌');
-				case EOrientation.InnerCornerDownLeft: return (heightBg, ConsoleColor.Black, '┐');
-				case EOrientation.InnerCornerUpLeft: return (heightBg, ConsoleColor.Black, '┘');
+				case EOrientation.InnerCornerUpRight: return (heightBg, fg, '└');
+				case EOrientation.InnerCornerDownRight: return (heightBg, fg, '┌');
+				case EOrientation.InnerCornerDownLeft: return (heightBg, fg, '┐');
+				case EOrientation.InnerCornerUpLeft: return (heightBg, fg, '┘');
 			}
 			break;
 		case ETileType.Stairs:
+			fg = new ConsoleBuffer.Color(160, 160, 160);
 			switch (cell.Orientation)
 			{
-				case EOrientation.TransitionUp: return (heightBg, ConsoleColor.Gray, '╩');
-				case EOrientation.TransitionRight: return (heightBg, ConsoleColor.Gray, '╠');
-				case EOrientation.TransitionDown: return (heightBg, ConsoleColor.Gray, '╦');
-				case EOrientation.TransitionLeft: return (heightBg, ConsoleColor.Gray, '╣');
+				case EOrientation.TransitionUp: return (heightBg, fg, '╩');
+				case EOrientation.TransitionRight: return (heightBg, fg, '╠');
+				case EOrientation.TransitionDown: return (heightBg, fg, '╦');
+				case EOrientation.TransitionLeft: return (heightBg, fg, '╣');
 			}
 			break;
 	}
-	return (ConsoleColor.Black, ConsoleColor.Red, '?');
+	return (new ConsoleBuffer.Color(0, 0, 0), new ConsoleBuffer.Color(255, 0, 0), '?');
 }
 
 Console.SetCursorPosition(0, Console.WindowHeight);

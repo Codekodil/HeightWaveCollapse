@@ -149,7 +149,7 @@ void WaveField::ReducePossibilities(WaveFunction* func, PointSet origins, Collap
 			else
 				++i;
 		}
-		order.Update(next, current->size());
+		order.Update(next, static_cast<int>(current->size()));
 	}
 }
 

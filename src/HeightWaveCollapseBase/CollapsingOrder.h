@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <set>
 #include <unordered_map>
 #include "Point.h"
 
@@ -16,6 +17,6 @@ namespace HeightWaveCollapseBase
 	private:
 		int _setCount;
 		std::unordered_map<Point, int, PairHash> _lastSize;
-		std::unique_ptr<PointSet[]> _orderedSets;
+		std::unique_ptr<std::set<Point>[]> _orderedSets;
 	};
 }

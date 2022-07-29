@@ -44,7 +44,7 @@ bool WaveFunction::DirectionContains(int direction, int index, Point value)
 	if (index < 0 || index >= _possibilities)
 		return false;
 	auto& set = _sets[direction];
-	return set[index].find(value) != set[index].end();
+	return set[index].contains(value);
 }
 
 extern "C"

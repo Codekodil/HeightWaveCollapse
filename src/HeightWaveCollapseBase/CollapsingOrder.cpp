@@ -24,15 +24,14 @@ CollapsingOrder::CollapsingOrder(PointSet& allFields, WaveField* field)
 	}
 
 	_setCount = maxSize + 1;
-	_orderedSets = make_unique<PointSet[]>(_setCount);
+	_orderedSets = make_unique<set<Point>[]>(_setCount);
 	for (auto& i : _lastSize)
 		_orderedSets[i.second].insert(i.first);
 }
 
 void CollapsingOrder::Update(Point value, int newSize)
 {
-	auto search = _lastSize.find(value);
-	if (search == _lastSize.end())
+	if (!_lastSize.contains(value))
 		return;
 	auto last = _lastSize[value];
 	auto next = newSize - 2;
