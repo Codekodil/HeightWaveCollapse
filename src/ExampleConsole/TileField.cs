@@ -10,12 +10,12 @@ namespace ExampleConsole
 		{
 			return new[] {
 				Rect(39, 10, 42, 93),
-				Rect(197, 10, 200, 130),
+				Rect(187, 10, 190, 130),
 				Rect(547, 50, 550, 130),
-				Rect(197, 127, 550, 130),
-				Rect(197, 50, 550, 53),
-				Rect(40, 90, 200, 93),
-				Rect(40, 10, 200, 13) }.Min();
+				Rect(187, 127, 550, 130),
+				Rect(157, 50, 550, 53),
+				Rect(40, 90, 190, 93),
+				Rect(40, 10, 350, 13) }.Min();
 
 			int Rect(int left, int down, int right, int up)
 			{

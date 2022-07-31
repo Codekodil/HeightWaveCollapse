@@ -51,10 +51,10 @@
 		{
 			var instructions = "";
 			Color? lastFg = null, lastBg = null;
-			var lastCellUpdated = true;
-			for (var y = 0; y < Height; y++)
+			var lastCellUpdated = false;
+			for (var y = Height - 1; y >= 0; y--)
 			{
-				instructions += $"\u001b[{Height - 1 - y};0H";
+				lastCellUpdated = false;
 				for (var x = 0; x < Width; x++)
 				{
 					if (!_needUpdate.Contains((x, y)))
@@ -64,7 +64,7 @@
 					}
 					if (!lastCellUpdated)
 					{
-						instructions += $"\u001b[{Height - 1 - y};{x}H";
+						instructions += $"\u001b[{Height - 1 - y};{x + 1}H";
 					}
 					lastCellUpdated = true;
 

@@ -21,7 +21,7 @@ newWave.AddTransition(ETileType.Stairs, EEdge.CliffCW, EEdge.StairTransition, EE
 
 var newWf = newWave.Bake();
 
-var newField = new TileField(newWf, Console.WindowWidth / 3, (Console.WindowHeight - 1) / 2);//Dividing is only there for testing multiple chunks
+var newField = new TileField(newWf, Console.WindowWidth / 3, Console.WindowHeight / 2);//Dividing is only there for testing multiple chunks
 newField.AddChunk(0, 0);
 newField.AddChunk(0, 1);
 newField.AddChunk(1, 0);
@@ -31,7 +31,7 @@ newField.AddChunk(2, 1);
 
 Task? displayRunning = null;
 var forceDisplayCounter = 0;
-var buffer = new ConsoleBuffer(Console.WindowWidth, Console.WindowHeight - 1); ;
+var buffer = new ConsoleBuffer(Console.WindowWidth, Console.WindowHeight); ;
 newField.AfterCollapseCell += Display;
 
 Display();
@@ -40,6 +40,7 @@ while (displayRunning != null)
 	Thread.Sleep(100);
 Display();
 displayRunning?.GetAwaiter().GetResult();
+Thread.Sleep(1000);
 
 void Display()
 {
