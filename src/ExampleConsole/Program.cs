@@ -94,7 +94,7 @@ void Display()
 	switch (cell.Tile)
 	{
 		case ETileType.Flat: return (heightBg, heightBg, ' ');
-		case ETileType.Shrub: return (heightBg, new ConsoleBuffer.Color(40, 120, 40), '#');
+		case ETileType.Shrub: return (heightBg, new ConsoleBuffer.Color(40, 160, 90), '#');
 		case ETileType.Tree:
 			fg = new ConsoleBuffer.Color(190, 90, 60);
 			switch (cell.Orientation)

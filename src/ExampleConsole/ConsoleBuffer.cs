@@ -64,7 +64,7 @@
 					}
 					if (!lastCellUpdated)
 					{
-						instructions += $"\u001b[{Height - 1 - y};{x + 1}H";
+						instructions += $"\u001b[{Height - y};{x + 1}H";
 					}
 					lastCellUpdated = true;
 

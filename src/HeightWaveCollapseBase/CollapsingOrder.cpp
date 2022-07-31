@@ -24,7 +24,7 @@ CollapsingOrder::CollapsingOrder(PointSet& allFields, WaveField* field)
 	}
 
 	_setCount = maxSize + 1;
-	_orderedSets = make_unique<set<Point>[]>(_setCount);
+	_orderedSets = make_unique<OrderedPointSet[]>(_setCount);
 	for (auto& i : _lastSize)
 		_orderedSets[i.second].insert(i.first);
 }

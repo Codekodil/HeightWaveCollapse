@@ -29,6 +29,15 @@ namespace ExampleConsole
 		{
 			IEnumerable<(ETileType Tile, EOrientation Orientation)> validCells = WaveFunction.CellValues;
 
+			if (Math.Abs(Math.Sqrt((x - 30) * (x - 30) + (y - 120) * (y - 120)) - 16) < 1.5)
+				return new WaveList<(ETileType Tile, EOrientation Orientation)>(WaveFunction, new[] { ((ETileType.Shrub, EOrientation.None), 1) });
+
+			if (Math.Abs(Math.Sqrt((x / 3f - 100) * (x / 3f - 100) + (y - 80) * (y - 80)) - 10) < 0.7)
+				return new WaveList<(ETileType Tile, EOrientation Orientation)>(WaveFunction, new[] { ((ETileType.Flat, EOrientation.None), 2) });
+
+			if (Math.Abs(Math.Sqrt((x / 2f - 230) * (x / 2f - 230) + (y + 80) * (y + 80)) - 100) < 3.5)
+				return new WaveList<(ETileType Tile, EOrientation Orientation)>(WaveFunction, new[] { ((ETileType.Shrub, EOrientation.None), 3) });
+
 			var d = Distance(x, y);
 			if (d == 0)
 				validCells = validCells.Where(c => c.Tile == ETileType.Flat || c.Tile == ETileType.Stairs);
