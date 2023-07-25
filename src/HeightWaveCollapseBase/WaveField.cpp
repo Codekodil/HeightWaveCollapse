@@ -5,13 +5,26 @@
 using namespace HeightWaveCollapseBase;
 using namespace std;
 
+WaveList* CellInitializer::Generate(int x, int y)
+{
+	auto init = InitCell;
+	return init ? reinterpret_cast<WaveList*>(init(x, y)) : new WaveList(0);
+}
+
+void CellCollapse::Invoke(int x, int y, int& id, int& height)
+{
+	auto collapse = CollapseCell;
+	if (collapse)
+		collapse(x, y, &id, &height);
+}
+
 WaveField::WaveField(int chunkWidth, int chunkHeight)
 {
 	_chunkWidth = max(chunkWidth, 1);
 	_chunkHeight = max(chunkHeight, 1);
 }
 
-bool WaveField::AddChunk(int chunkX, int chunkY, WaveList* (*initCell)(int x, int y))
+bool WaveField::AddChunk(int chunkX, int chunkY, CellInitializer* initializer)
 {
 	pair<int, int> key = { chunkX, chunkY };
 	if (_chunks.find(key) != _chunks.end())
@@ -20,11 +33,11 @@ bool WaveField::AddChunk(int chunkX, int chunkY, WaveList* (*initCell)(int x, in
 	for (int x = 0; x < _chunkWidth; x++)
 		for (int y = 0; y < _chunkHeight; y++)
 		{
-			auto list = unique_ptr<WaveList>(initCell(_chunkWidth * chunkX + x, _chunkHeight * chunkY + y));
+			auto list = initializer->Generate(_chunkWidth * chunkX + x, _chunkHeight * chunkY + y);
 			int id, height;
 			for (int i = 0; i < list->GetSize(); i++)
 			{
-				list->Get(i, id, height);
+				list->Get(i, &id, &height);
 				chunk->At(x, y).push_back({ id,height });
 			}
 		}
@@ -61,7 +74,7 @@ WaveList* WaveField::ListAt(int x, int y)
 	return list;
 }
 
-void WaveField::Collapse(WaveFunction* func, void (*collapseField)(int x, int y, int& id, int& height))
+void WaveField::Collapse(WaveFunction* func, CellCollapse* collapse)
 {
 
 	PointSet allFields;
@@ -82,7 +95,7 @@ void WaveField::Collapse(WaveFunction* func, void (*collapseField)(int x, int y,
 			continue;
 
 		int id, height;
-		collapseField(next.first, next.second, id, height);
+		collapse->Invoke(next.first, next.second, id, height);
 		possibilities->erase(possibilities->begin(), possibilities->end());
 		if (id >= 0)
 			possibilities->push_back({ id, height });
@@ -151,38 +164,4 @@ void WaveField::ReducePossibilities(WaveFunction* func, PointSet origins, Collap
 		}
 		order.Update(next, static_cast<int>(current->size()));
 	}
-}
-
-extern "C"
-{
-	__declspec(dllexport) WaveField* __stdcall NewWaveField(int chunkWidth, int chunkHeight);
-	__declspec(dllexport) void __stdcall DeleteWaveField(WaveField* field);
-	__declspec(dllexport) bool __stdcall WaveFieldAddChunk(WaveField* field, int chunkX, int chunkY, WaveList* (*initCell)(int x, int y));
-	__declspec(dllexport) WaveList* __stdcall WaveFieldListAt(WaveField* field, int x, int y);
-	__declspec(dllexport) void __stdcall WaveFieldCollapse(WaveField* field, WaveFunction* func, void (*collapseField)(int x, int y, int& id, int& height));
-}
-
-WaveField* __stdcall NewWaveField(int chunkWidth, int chunkHeight)
-{
-	return new WaveField(chunkWidth, chunkHeight);
-}
-
-void __stdcall DeleteWaveField(WaveField* field)
-{
-	delete field;
-}
-
-bool __stdcall WaveFieldAddChunk(WaveField* field, int chunkX, int chunkY, WaveList* (*initCell)(int x, int y))
-{
-	return field->AddChunk(chunkX, chunkY, initCell);
-}
-
-WaveList* __stdcall WaveFieldListAt(WaveField* field, int x, int y)
-{
-	return field->ListAt(x, y);
-}
-
-void __stdcall WaveFieldCollapse(WaveField* field, WaveFunction* func, void (*collapseField)(int x, int y, int& id, int& height))
-{
-	field->Collapse(func, collapseField);
 }

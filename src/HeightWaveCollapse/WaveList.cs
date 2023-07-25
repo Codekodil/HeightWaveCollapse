@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Runtime.InteropServices;
 
 namespace HeightWaveCollapse
 {
@@ -9,7 +8,7 @@ namespace HeightWaveCollapse
 		public WaveFunction<TCell> WaveFunction { get; }
 		public bool InUse => !_diposeNative;
 
-		internal readonly IntPtr _nativeList;
+		internal readonly HeightWaveCollapseBase.HeightWaveCollapseBase.WaveList _nativeList;
 		private bool _diposeNative = true;
 		private readonly object _locker = new object();
 
@@ -18,7 +17,7 @@ namespace HeightWaveCollapse
 			if (size < 0) throw new ArgumentOutOfRangeException(nameof(size));
 			Size = size;
 			WaveFunction = waveFunction;
-			_nativeList = NativeWaveList.NewWaveList(Size);
+			_nativeList = new HeightWaveCollapseBase.HeightWaveCollapseBase.WaveList(Size);
 		}
 
 		public WaveList(WaveFunction<TCell> waveFunction, IEnumerable<(TCell Value, int Height)> values)
@@ -26,22 +25,22 @@ namespace HeightWaveCollapse
 			var list = values.ToList();
 			Size = list.Count;
 			WaveFunction = waveFunction;
-			_nativeList = NativeWaveList.NewWaveList(Size);
+			_nativeList = new HeightWaveCollapseBase.HeightWaveCollapseBase.WaveList(Size);
 			for (int i = 0; i < list.Count; i++)
 				this[i] = list[i];
 		}
 
-		internal WaveList(WaveFunction<TCell> waveFunction, IntPtr native)
+		internal WaveList(WaveFunction<TCell> waveFunction, HeightWaveCollapseBase.HeightWaveCollapseBase.WaveList native)
 		{
-			Size = NativeWaveList.WaveListGetSize(native);
-			WaveFunction = waveFunction;
 			_nativeList = native;
+			Size = _nativeList.GetSize();
+			WaveFunction = waveFunction;
 		}
 
 		~WaveList()
 		{
 			if (_diposeNative)
-				NativeWaveList.DeleteWaveList(_nativeList);
+				_nativeList.Dispose();
 		}
 
 		internal bool SetInUse()
@@ -72,7 +71,8 @@ namespace HeightWaveCollapse
 				{
 					if (InUse)
 						throw new InvalidOperationException("can not access lists that are in use");
-					if (!NativeWaveList.WaveListGet(_nativeList, index, out var i, out var h))
+					int i = default, h = default;
+					if (!_nativeList.Get(index, ref i, ref h))
 						throw new IndexOutOfRangeException();
 					if (!WaveFunction.TryFromIndex(i, out var v))
 						throw new KeyNotFoundException($"Invalid cell id {i}");
@@ -87,28 +87,10 @@ namespace HeightWaveCollapse
 						throw new InvalidOperationException("can not access lists that are in use");
 					if (!WaveFunction.TryGetIndex(value.Value, out var i))
 						throw new KeyNotFoundException($"Invalid cell value [{value.Value}]");
-					if (!NativeWaveList.WaveListSet(_nativeList, index, i, value.Height))
+					if (!_nativeList.Set(index, i, value.Height))
 						throw new IndexOutOfRangeException();
 				}
 			}
 		}
-	}
-
-	internal static class NativeWaveList
-	{
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern IntPtr NewWaveList(int size);
-
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern void DeleteWaveList(IntPtr list);
-
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern int WaveListGetSize(IntPtr list);
-
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern bool WaveListGet(IntPtr list, int index, out int id, out int height);
-
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern bool WaveListSet(IntPtr list, int index, int id, int height);
 	}
 }

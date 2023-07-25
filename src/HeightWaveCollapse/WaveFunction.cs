@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 
 namespace HeightWaveCollapse
 {
@@ -7,7 +6,7 @@ namespace HeightWaveCollapse
 	{
 		public IReadOnlyList<TCell> CellValues { get; }
 		private readonly Dictionary<TCell, int> _indices;
-		internal readonly IntPtr _nativeFunction;
+		internal readonly HeightWaveCollapseBase.HeightWaveCollapseBase.WaveFunction _nativeFunction;
 		internal WaveFunction(Dictionary<TCell, (
 						HashSet<(TCell cell, int height)> left,
 						HashSet<(TCell cell, int height)> up,
@@ -24,11 +23,11 @@ namespace HeightWaveCollapse
 			foreach (var cell in cells)
 				if (!connections.ContainsKey(cell))
 					throw new Exception($"missing connections for [{cell}]");
-			_nativeFunction = NativeWaveFunction.NewWaveFunction(cells.Count);
+			_nativeFunction = new HeightWaveCollapseBase.HeightWaveCollapseBase.WaveFunction(cells.Count);
 			for (var i = 0; i < cells.Count; i++)
 			{
 				var connection = connections[cells[i]];
-				if (!NativeWaveFunction.WaveFunctionSetPossibilities(_nativeFunction, i,
+				if (!_nativeFunction.SetPossibilities(i,
 					ListFromSet(connection.left)._nativeList,
 					ListFromSet(connection.up)._nativeList,
 					ListFromSet(connection.right)._nativeList,
@@ -47,11 +46,6 @@ namespace HeightWaveCollapse
 			CellValues = cells.AsReadOnly();
 		}
 
-		~WaveFunction()
-		{
-			NativeWaveFunction.DeleteWaveFunction(_nativeFunction);
-		}
-
 		internal bool TryFromIndex(int index, [MaybeNullWhen(false)] out TCell value)
 		{
 			if (index < 0 || index >= CellValues.Count)
@@ -63,17 +57,5 @@ namespace HeightWaveCollapse
 			return true;
 		}
 		internal bool TryGetIndex(TCell value, out int index) => _indices.TryGetValue(value, out index);
-	}
-
-	internal static class NativeWaveFunction
-	{
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern IntPtr NewWaveFunction(int possibilities);
-
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern void DeleteWaveFunction(IntPtr func);
-
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern bool WaveFunctionSetPossibilities(IntPtr func, int index, IntPtr left, IntPtr up, IntPtr right, IntPtr down);
 	}
 }

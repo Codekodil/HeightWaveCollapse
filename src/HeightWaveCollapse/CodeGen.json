@@ -1,0 +1,10 @@
+{
+  "Pch": null,
+  "HeaderDirectories": [
+    "../HeightWaveCollapseBase"
+  ],
+  "CppResultPath": "../HeightWaveCollapseBase/Export.cpp",
+  "HppResultPath": "../HeightWaveCollapseBase/CodeGen.h",
+  "CsResultPath": "WaveNative.cs",
+  "NativeLibraryName": "HeightWaveCollapseBase"
+}

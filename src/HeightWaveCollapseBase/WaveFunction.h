@@ -1,12 +1,13 @@
 #pragma once
 
-#include <memory>
+#include "CodeGen.h"
 #include "WaveList.h"
 #include "Point.h"
+#include <memory>
 
 namespace HeightWaveCollapseBase
 {
-	class WaveFunction
+	class Wrapper_Generate WaveFunction
 	{
 	public:
 		WaveFunction(int possibilities);

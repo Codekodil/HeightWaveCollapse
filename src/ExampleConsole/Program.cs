@@ -21,7 +21,7 @@ newWave.AddTransition(ETileType.Stairs, EEdge.CliffCW, EEdge.StairTransition, EE
 
 var newWf = newWave.Bake();
 
-var newField = new TileField(newWf, Console.WindowWidth / 3, Console.WindowHeight / 2);//Dividing is only there for testing multiple chunks
+var newField = new TileField(newWf, Console.WindowWidth / 3, (Console.WindowHeight - 1) / 2);//Dividing is only there for testing multiple chunks
 newField.AddChunk(0, 0);
 newField.AddChunk(0, 1);
 newField.AddChunk(1, 0);
@@ -139,4 +139,4 @@ void Display()
 	return (new ConsoleBuffer.Color(0, 0, 0), new ConsoleBuffer.Color(255, 0, 0), '?');
 }
 
-Console.SetCursorPosition(0, Console.WindowHeight);
+Console.SetCursorPosition(0, Console.WindowHeight - 1);

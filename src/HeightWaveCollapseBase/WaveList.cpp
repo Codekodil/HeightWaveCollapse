@@ -14,12 +14,12 @@ WaveList::WaveList(int size)
 
 int WaveList::GetSize() { return _size; }
 
-bool WaveList::Get(int index, int& id, int& height)
+bool WaveList::Get(int index, int* id, int* height)
 {
 	if (index < 0 || index >= _size)return false;
 
-	id = _ids[index];
-	height = _heights[index];
+	*id = _ids[index];
+	*height = _heights[index];
 
 	return true;
 }
@@ -32,38 +32,4 @@ bool WaveList::Set(int index, int id, int height)
 	_heights[index] = height;
 
 	return true;
-}
-
-extern "C"
-{
-	__declspec(dllexport) WaveList* __stdcall NewWaveList(int size);
-	__declspec(dllexport) void __stdcall DeleteWaveList(WaveList* list);
-	__declspec(dllexport) int __stdcall WaveListGetSize(WaveList* list);
-	__declspec(dllexport) bool __stdcall WaveListGet(WaveList* list, int index, int& id, int& height);
-	__declspec(dllexport) bool __stdcall WaveListSet(WaveList* list, int index, int id, int height);
-}
-
-WaveList* __stdcall NewWaveList(int size)
-{
-	return new WaveList(size);
-}
-
-void __stdcall DeleteWaveList(WaveList* list)
-{
-	delete list;
-}
-
-int __stdcall WaveListGetSize(WaveList* list)
-{
-	return list->GetSize();
-}
-
-bool __stdcall WaveListGet(WaveList* list, int index, int& id, int& height)
-{
-	return list->Get(index, id, height);
-}
-
-bool __stdcall WaveListSet(WaveList* list, int index, int id, int height)
-{
-	return list->Set(index, id, height);
 }

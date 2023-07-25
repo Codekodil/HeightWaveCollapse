@@ -94,6 +94,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>$(SolutionDir)../UnhedderCodeGen/bin/Release/net6.0/CodeGenConsole.exe $(SolutionDir)HeightWaveCollapse/CodeGen.json</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -111,6 +114,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>$(SolutionDir)../UnhedderCodeGen/bin/Release/net6.0/CodeGenConsole.exe $(SolutionDir)HeightWaveCollapse/CodeGen.json</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -124,6 +130,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>$(SolutionDir)../UnhedderCodeGen/bin/Release/net6.0/CodeGenConsole.exe $(SolutionDir)HeightWaveCollapse/CodeGen.json</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -141,6 +150,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>$(SolutionDir)../UnhedderCodeGen/bin/Release/net6.0/CodeGenConsole.exe $(SolutionDir)HeightWaveCollapse/CodeGen.json</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CollapsingOrder.h" />
@@ -152,6 +164,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CollapsingOrder.cpp" />
+    <ClCompile Include="Export.cpp" />
     <ClCompile Include="WaveChunk.cpp" />
     <ClCompile Include="WaveField.cpp" />
     <ClCompile Include="WaveFunction.cpp" />

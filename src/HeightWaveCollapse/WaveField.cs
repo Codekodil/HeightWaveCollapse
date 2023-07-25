@@ -1,13 +1,11 @@
-﻿using System.Runtime.InteropServices;
-
-namespace HeightWaveCollapse
+﻿namespace HeightWaveCollapse
 {
 	public abstract class WaveField<TCell> where TCell : notnull
 	{
 		public int ChunkHeight { get; }
 		public int ChunkWidth { get; }
 		public WaveFunction<TCell> WaveFunction { get; }
-		private readonly IntPtr _nativeField;
+		private readonly HeightWaveCollapseBase.HeightWaveCollapseBase.WaveField _nativeField;
 		private readonly object _locker = new object();
 		private readonly HashSet<(int X, int Y)> _chunks = new HashSet<(int X, int Y)>();
 		public WaveField(WaveFunction<TCell> waveFunction, int chunkWidth, int chunkHeight)
@@ -17,12 +15,7 @@ namespace HeightWaveCollapse
 			WaveFunction = waveFunction;
 			ChunkWidth = chunkWidth;
 			ChunkHeight = chunkHeight;
-			_nativeField = NativeWaveField.NewWaveField(ChunkWidth, ChunkHeight);
-		}
-
-		~WaveField()
-		{
-			NativeWaveField.DeleteWaveField(_nativeField);
+			_nativeField = new HeightWaveCollapseBase.HeightWaveCollapseBase.WaveField(ChunkWidth, ChunkHeight);
 		}
 
 		protected abstract WaveList<TCell> CellInitializer(int x, int y);
@@ -35,16 +28,26 @@ namespace HeightWaveCollapse
 		{
 			var exceptions = new List<Exception>();
 			bool result;
+
+			using var initializer = new HeightWaveCollapseBase.HeightWaveCollapseBase.CellInitializer();
+			initializer.InitCell += (x, y) =>
+			{
+				var list = Initialize(x, y);
+				var ptr = list.Native!.Value;
+				list.Native = null;
+				return ptr;
+			};
+
 			lock (_locker)
 			{
-				result = NativeWaveField.WaveFieldAddChunk(_nativeField, chunkX, chunkY, Initialize);
+				result = _nativeField.AddChunk(chunkX, chunkY, initializer);
 				_chunks.Add((chunkX, chunkY));
 			}
 			if (exceptions.Count > 0)
 				throw new AggregateException(exceptions);
 			return result;
 
-			IntPtr Initialize(int x, int y)
+			HeightWaveCollapseBase.HeightWaveCollapseBase.WaveList Initialize(int x, int y)
 			{
 				try
 				{
@@ -84,8 +87,8 @@ namespace HeightWaveCollapse
 		{
 			lock (_locker)
 			{
-				var nativeList = NativeWaveField.WaveFieldListAt(_nativeField, x, y);
-				if (nativeList == IntPtr.Zero)
+				var nativeList = _nativeField.ListAt(x, y);
+				if (nativeList is null)
 					return null;
 				return new WaveList<TCell>(WaveFunction, nativeList);
 			}
@@ -93,13 +96,17 @@ namespace HeightWaveCollapse
 
 		public void Collapse()
 		{
-			var exceptions = new List<Exception>();
+			List<Exception> exceptions = new List<Exception>();
 			lock (_locker)
-				NativeWaveField.WaveFieldCollapse(_nativeField, WaveFunction._nativeFunction, CollapseField);
+			{
+				using var collapse = new HeightWaveCollapseBase.HeightWaveCollapseBase.CellCollapse();
+				collapse.CollapseCell += CollapseField;
+				_nativeField.Collapse(WaveFunction._nativeFunction, collapse);
+			}
 			if (exceptions.Count > 0)
 				throw new AggregateException(exceptions);
 
-			void CollapseField(int x, int y, out int id, out int height)
+			void CollapseField(int x, int y, ref int id, ref int height)
 			{
 				try
 				{
@@ -124,27 +131,5 @@ namespace HeightWaveCollapse
 				}
 			}
 		}
-	}
-
-	internal static class NativeWaveField
-	{
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern IntPtr NewWaveField(int chunkWidth, int chunkHeight);
-
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern void DeleteWaveField(IntPtr field);
-
-		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		internal delegate IntPtr InitCellDelegate(int x, int y);
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern bool WaveFieldAddChunk(IntPtr field, int chunkX, int chunkY, [MarshalAs(UnmanagedType.FunctionPtr)] InitCellDelegate initCell);
-
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern IntPtr WaveFieldListAt(IntPtr field, int x, int y);
-
-		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		internal delegate void CollapseFieldDelegate(int x, int y, out int id, out int height);
-		[DllImport("HeightWaveCollapseBase")]
-		internal static extern void WaveFieldCollapse(IntPtr field, IntPtr func, [MarshalAs(UnmanagedType.FunctionPtr)] CollapseFieldDelegate ccollapseField);
 	}
 }

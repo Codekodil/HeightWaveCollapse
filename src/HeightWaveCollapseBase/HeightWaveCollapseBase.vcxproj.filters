@@ -14,5 +14,6 @@
     <ClCompile Include="WaveField.cpp" />
     <ClCompile Include="WaveChunk.cpp" />
     <ClCompile Include="CollapsingOrder.cpp" />
+    <ClCompile Include="Export.cpp" />
   </ItemGroup>
 </Project>
