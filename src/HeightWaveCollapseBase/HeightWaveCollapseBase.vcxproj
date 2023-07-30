@@ -155,6 +155,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Area.h" />
     <ClInclude Include="CollapsingOrder.h" />
     <ClInclude Include="Point.h" />
     <ClInclude Include="WaveChunk.h" />
@@ -163,6 +164,7 @@
     <ClInclude Include="WaveList.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Area.cpp" />
     <ClCompile Include="CollapsingOrder.cpp" />
     <ClCompile Include="Export.cpp" />
     <ClCompile Include="WaveChunk.cpp" />

@@ -21,13 +21,15 @@ newWave.AddTransition(ETileType.Stairs, EEdge.CliffCW, EEdge.StairTransition, EE
 
 var newWf = newWave.Bake();
 
-var newField = new TileField(newWf, Console.WindowWidth / 3, (Console.WindowHeight - 1) / 2);//Dividing is only there for testing multiple chunks
+var newField = new TileField(newWf, Console.WindowWidth / 4, (Console.WindowHeight - 1) / 2);//Dividing is only there for testing multiple chunks
 newField.AddChunk(0, 0);
 newField.AddChunk(0, 1);
 newField.AddChunk(1, 0);
 newField.AddChunk(1, 1);
 newField.AddChunk(2, 0);
 newField.AddChunk(2, 1);
+newField.AddChunk(3, 0);
+newField.AddChunk(3, 1);
 
 Task? displayRunning = null;
 var forceDisplayCounter = 0;
@@ -35,50 +37,56 @@ var buffer = new ConsoleBuffer(Console.WindowWidth, Console.WindowHeight); ;
 newField.AfterCollapseCell += Display;
 
 Display();
-newField.Collapse();
+var leftCollapese = newField.CollapseAsync(0, 0, (newField.ChunkWidth * 3) / 2, newField.ChunkHeight * 2, newField.ChunkWidth / 4);
+var rightCollapese = newField.CollapseAsync((newField.ChunkWidth * 5) / 2, 0, newField.ChunkWidth * 2, newField.ChunkHeight * 2, newField.ChunkWidth / 4);
+var allCollapse = newField.CollapseAsync();
+await Task.WhenAll(leftCollapese, rightCollapese, allCollapse);
 while (displayRunning != null)
-	Thread.Sleep(100);
+	await Task.Delay(100);
 Display();
-displayRunning?.GetAwaiter().GetResult();
+await (displayRunning ?? Task.CompletedTask);
 Thread.Sleep(1000);
 
 void Display()
 {
-	if (forceDisplayCounter++ > 200)
+	lock (buffer)
 	{
-		while (displayRunning != null)
-			Thread.Sleep(10);
-	}
-	if (displayRunning != null) return;
-	var iterations = forceDisplayCounter;
-	forceDisplayCounter = 0;
-
-	var cells = newField.GetCells().Select(c => (c, newField.PossibilitiesAt(c.X, c.Y))).ToList();
-
-	displayRunning = Task.Run(() =>
-	{
-		try
+		if (forceDisplayCounter++ > 200)
 		{
-			foreach (var (c, p) in cells)
+			while (displayRunning != null)
+				Thread.Sleep(10);
+		}
+		if (displayRunning != null) return;
+		var iterations = forceDisplayCounter;
+		forceDisplayCounter = 0;
+
+		var cells = newField.GetCells().Select(c => (c, newField.PossibilitiesAt(c.X, c.Y))).ToList();
+
+		displayRunning = Task.Run(() =>
+		{
+			try
 			{
-				(ConsoleBuffer.Color bg, ConsoleBuffer.Color fg, char c) data;
+				foreach (var (c, p) in cells)
+				{
+					(ConsoleBuffer.Color bg, ConsoleBuffer.Color fg, char c) data;
 
-				if (p == null || p.Size == 0)
-					data = (new ConsoleBuffer.Color(0, 0, 0), new ConsoleBuffer.Color(255, 0, 0), '0');
-				else if (p.Size == 1)
-					data = DrawingData(p[0].Value, p[0].Height);
-				else
-					data = (new ConsoleBuffer.Color(0, 0, 0), p.Size <= 9 ? new ConsoleBuffer.Color(255, 255, 255) : new ConsoleBuffer.Color(64, 64, 64), Math.Min(p.Size, 9).ToString()[0]);
+					if (p == null || p.Size == 0)
+						data = (new ConsoleBuffer.Color(0, 0, 0), new ConsoleBuffer.Color(255, 0, 0), '0');
+					else if (p.Size == 1)
+						data = DrawingData(p[0].Value, p[0].Height);
+					else
+						data = (new ConsoleBuffer.Color(0, 0, 0), p.Size <= 9 ? new ConsoleBuffer.Color(255, 255, 255) : new ConsoleBuffer.Color(64, 64, 64), Math.Min(p.Size, 9).ToString()[0]);
 
-				buffer[c.X, c.Y] = (data.c, data.fg, data.bg);
+					buffer[c.X, c.Y] = (data.c, data.fg, data.bg);
+				}
+				buffer.Draw();
 			}
-			buffer.Draw();
-		}
-		finally
-		{
-			displayRunning = null;
-		}
-	});
+			finally
+			{
+				displayRunning = null;
+			}
+		});
+	}
 }
 
 (ConsoleBuffer.Color bg, ConsoleBuffer.Color fg, char c) DrawingData((ETileType Tile, EOrientation Orientation) cell, int height)

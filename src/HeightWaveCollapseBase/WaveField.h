@@ -5,6 +5,7 @@
 #include "WaveList.h"
 #include "Point.h"
 #include "CollapsingOrder.h"
+#include "Area.h"
 #include <memory>
 #include <unordered_map>
 
@@ -28,17 +29,17 @@ namespace HeightWaveCollapseBase
 		void Invoke(int x, int y, int& id, int& height);
 	};
 
-	class Wrapper_Lookup WaveField
+	class Wrapper_Generate WaveField
 	{
 	public:
 		WaveField(int chunkWidth, int chunkHeight);
 		bool AddChunk(int chunkX, int chunkY, CellInitializer* initializer);
 		std::list<std::pair<int, int>>* At(int x, int y);
 		WaveList* ListAt(int x, int y);
-		void Collapse(WaveFunction* func, CellCollapse* collapse);
+		void Collapse(WaveFunction* func, Area* reduceChunks, Area* collapseFields, CellCollapse* collapse);
 	private:
 		int _chunkWidth, _chunkHeight;
 		std::unordered_map<Point, std::unique_ptr<WaveChunk>, PairHash> _chunks;
-		void ReducePossibilities(WaveFunction* func, PointSet origins, CollapsingOrder& order);
+		void ReducePossibilities(WaveFunction* func, PointSet origins, Area& reducible, CollapsingOrder& order);
 	};
 }

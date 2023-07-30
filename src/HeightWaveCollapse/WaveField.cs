@@ -6,8 +6,9 @@
 		public int ChunkWidth { get; }
 		public WaveFunction<TCell> WaveFunction { get; }
 		private readonly HeightWaveCollapseBase.HeightWaveCollapseBase.WaveField _nativeField;
+		private int _pendingCollapses = 0;
 		private readonly object _locker = new object();
-		private readonly HashSet<(int X, int Y)> _chunks = new HashSet<(int X, int Y)>();
+		private readonly Dictionary<(int X, int Y), Task> _chunks = new Dictionary<(int X, int Y), Task>();
 		public WaveField(WaveFunction<TCell> waveFunction, int chunkWidth, int chunkHeight)
 		{
 			if (chunkWidth <= 0) throw new ArgumentOutOfRangeException(nameof(chunkWidth));
@@ -29,19 +30,22 @@
 			var exceptions = new List<Exception>();
 			bool result;
 
-			using var initializer = new HeightWaveCollapseBase.HeightWaveCollapseBase.CellInitializer();
-			initializer.InitCell += (x, y) =>
-			{
-				var list = Initialize(x, y);
-				var ptr = list.Native!.Value;
-				list.Native = null;
-				return ptr;
-			};
-
 			lock (_locker)
 			{
+				if (_pendingCollapses > 0)
+					throw new InvalidOperationException("pending collapse");
+
+				var listReferences = new List<HeightWaveCollapseBase.HeightWaveCollapseBase.WaveList>();
+				using var initializer = new HeightWaveCollapseBase.HeightWaveCollapseBase.CellInitializer();
+				initializer.InitCell += (x, y) =>
+				{
+					var list = Initialize(x, y);
+					listReferences.Add(list);
+					return list.Native!.Value;
+				};
+
 				result = _nativeField.AddChunk(chunkX, chunkY, initializer);
-				_chunks.Add((chunkX, chunkY));
+				_chunks[(chunkX, chunkY)] = Task.CompletedTask;
 			}
 			if (exceptions.Count > 0)
 				throw new AggregateException(exceptions);
@@ -54,8 +58,6 @@
 					var list = CellInitializer(x, y);
 					if (list.WaveFunction != WaveFunction)
 						throw new InvalidOperationException($"list of size [{list.Size}] originates from a different WaveFunction");
-					if (!list.SetInUse())
-						throw new InvalidOperationException($"list of size [{list.Size}] is already in use");
 					return list._nativeList;
 				}
 				catch (Exception ex)
@@ -63,7 +65,6 @@
 					exceptions.Add(new Exception($"Initialize Exception at {x}/{y}", ex));
 				}
 				var emptyList = new WaveList<TCell>(WaveFunction, 0);
-				emptyList.SetInUse();
 				return emptyList._nativeList;
 			}
 		}
@@ -71,7 +72,7 @@
 		public List<(int ChunkX, int ChunkY)> GetChunks()
 		{
 			lock (_locker)
-				return _chunks.ToList();
+				return _chunks.Keys.ToList();
 		}
 		public IEnumerable<(int X, int Y)> GetCells()
 		{
@@ -94,41 +95,127 @@
 			}
 		}
 
-		public void Collapse()
+		public Task CollapseAsync()
 		{
-			List<Exception> exceptions = new List<Exception>();
+			var minX = int.MaxValue;
+			var minY = int.MaxValue;
+			var maxX = int.MinValue;
+			var maxY = int.MinValue;
 			lock (_locker)
 			{
-				using var collapse = new HeightWaveCollapseBase.HeightWaveCollapseBase.CellCollapse();
-				collapse.CollapseCell += CollapseField;
-				_nativeField.Collapse(WaveFunction._nativeFunction, collapse);
+				foreach (var chunk in _chunks)
+				{
+					minX = Math.Min(minX, chunk.Key.X);
+					minY = Math.Min(minY, chunk.Key.Y);
+					maxX = Math.Max(maxX, chunk.Key.X);
+					maxY = Math.Max(maxY, chunk.Key.Y);
+				}
 			}
-			if (exceptions.Count > 0)
-				throw new AggregateException(exceptions);
+			minX *= ChunkWidth; minY *= ChunkHeight;
+			maxX *= ChunkWidth; maxY *= ChunkHeight;
+			return CollapseAsync(minX, minY, maxX - minX + ChunkWidth, maxY - minY + ChunkHeight, 1);
+		}
 
-			void CollapseField(int x, int y, ref int id, ref int height)
+		public async Task CollapseAsync(int x, int y, int width, int height, int reduceBorder)
+		{
+			var borderChunkMinX = x - reduceBorder; borderChunkMinX = borderChunkMinX < 0 ? (borderChunkMinX - ChunkWidth + 1) / ChunkWidth : borderChunkMinX / ChunkWidth;
+			var borderChunkMinY = y - reduceBorder; borderChunkMinY = borderChunkMinY < 0 ? (borderChunkMinY - ChunkHeight + 1) / ChunkHeight : borderChunkMinY / ChunkHeight;
+			var borderChunkMaxX = x + width + reduceBorder - 1; borderChunkMaxX = borderChunkMaxX < 0 ? (borderChunkMaxX - ChunkWidth + 1) / ChunkWidth : borderChunkMaxX / ChunkWidth;
+			var borderChunkMaxY = y + height + reduceBorder - 1; borderChunkMaxY = borderChunkMaxY < 0 ? (borderChunkMaxY - ChunkHeight + 1) / ChunkHeight : borderChunkMaxY / ChunkHeight;
+
+			var completionSource = new TaskCompletionSource();
+
+			lock (_locker)
 			{
-				try
+				_pendingCollapses++;
+			}
+			try
+			{
+				Task? waitBeforeNextTryReserve = Task.CompletedTask;
+				while (waitBeforeNextTryReserve is not null)
 				{
-					var possibilities = PossibilitiesAt(x, y);
-					if (possibilities == null)
+					await waitBeforeNextTryReserve.ConfigureAwait(false);
+					lock (_locker)
 					{
-						id = -1;
-						height = 0;
-						return;
+						var requiredChunks = _chunks.Where(kv =>
+							kv.Key.X >= borderChunkMinX &&
+							kv.Key.Y >= borderChunkMinY &&
+							kv.Key.X <= borderChunkMaxX &&
+							kv.Key.Y <= borderChunkMaxY).ToList();
+
+						waitBeforeNextTryReserve = Task.WhenAll(requiredChunks.Select(kv => kv.Value));
+
+						if (waitBeforeNextTryReserve.IsCompleted)
+						{
+							waitBeforeNextTryReserve = null;
+							foreach (var chunk in requiredChunks)
+								_chunks[chunk.Key] = completionSource.Task;
+						}
 					}
-					var result = CollapseCell(x, y, possibilities);
-					if (!WaveFunction.TryGetIndex(result.Value, out var index))
-						throw new InvalidOperationException($"Invalid cell id {result.Value}");
-					id = index;
-					height = result.Height;
 				}
-				catch (Exception ex)
+
+				var threadWait = new TaskCompletionSource();
+				var thread = new Thread(() =>
 				{
-					exceptions.Add(new Exception($"Collapse Exception at {x}/{y}", ex));
-					id = -1;
-					height = 0;
+					try
+					{
+						List<Exception> exceptions = new List<Exception>();
+
+						using var collapse = new HeightWaveCollapseBase.HeightWaveCollapseBase.CellCollapse();
+						collapse.CollapseCell += CollapseField;
+
+						using var reduceChunks = new HeightWaveCollapseBase.HeightWaveCollapseBase.Area(borderChunkMinX, borderChunkMinY, borderChunkMaxX - borderChunkMinX + 1, borderChunkMaxY - borderChunkMinY + 1);
+						using var collapseArea = new HeightWaveCollapseBase.HeightWaveCollapseBase.Area(x, y, width, height);
+
+						_nativeField.Collapse(WaveFunction._nativeFunction, reduceChunks, collapseArea, collapse);
+
+						if (exceptions.Count > 0)
+							throw new AggregateException(exceptions);
+
+						void CollapseField(int x, int y, ref int id, ref int height)
+						{
+							try
+							{
+								var possibilities = PossibilitiesAt(x, y);
+								if (possibilities == null)
+								{
+									id = -1;
+									height = 0;
+									return;
+								}
+								var result = CollapseCell(x, y, possibilities);
+								if (!WaveFunction.TryGetIndex(result.Value, out var index))
+									throw new InvalidOperationException($"Invalid cell id {result.Value}");
+								id = index;
+								height = result.Height;
+							}
+							catch (Exception ex)
+							{
+								exceptions.Add(new Exception($"Collapse Exception at {x}/{y}", ex));
+								id = -1;
+								height = 0;
+							}
+						}
+
+						threadWait.SetResult();
+					}
+					catch (Exception ex)
+					{
+						threadWait.SetException(ex);
+					}
+				});
+				thread.IsBackground = true;
+				thread.Start();
+
+				await threadWait.Task.ConfigureAwait(false);
+			}
+			finally
+			{
+				lock (_locker)
+				{
+					_pendingCollapses--;
 				}
+				completionSource.SetResult();
 			}
 		}
 	}

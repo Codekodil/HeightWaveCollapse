@@ -40,7 +40,6 @@ namespace HeightWaveCollapse
 				var i = 0;
 				foreach (var cell in set)
 					list[i++] = (cell.cell, cell.height);
-				list.SetInUse();
 				return list;
 			}
 			CellValues = cells.AsReadOnly();

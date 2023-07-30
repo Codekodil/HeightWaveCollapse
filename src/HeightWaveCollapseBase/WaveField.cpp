@@ -74,18 +74,26 @@ WaveList* WaveField::ListAt(int x, int y)
 	return list;
 }
 
-void WaveField::Collapse(WaveFunction* func, CellCollapse* collapse)
+void WaveField::Collapse(WaveFunction* func, Area* reduceChunks, Area* collapseFieldArea, CellCollapse* collapse)
 {
-
-	PointSet allFields;
+	PointSet reduceFields;
+	PointSet collapseFields;
 	for (auto& chunk : _chunks)
-		for (int x = 0; x < _chunkWidth; ++x)
-			for (int y = 0; y < _chunkHeight; ++y)
-				allFields.insert({ x + chunk.first.first * _chunkWidth,y + chunk.first.second * _chunkHeight });
+		if (reduceChunks->Inside(chunk.first.first, chunk.first.second))
+			for (int x = 0; x < _chunkWidth; ++x)
+				for (int y = 0; y < _chunkHeight; ++y)
+				{
+					auto worldX = x + chunk.first.first * _chunkWidth;
+					auto worldY = y + chunk.first.second * _chunkHeight;
+					reduceFields.insert({ worldX, worldY });
+					if (collapseFieldArea->Inside(worldX, worldY))
+						collapseFields.insert({ worldX, worldY });
+				}
 
-	CollapsingOrder order(allFields, this);
+	CollapsingOrder order(collapseFields, this);
+	Area reducible{ reduceChunks->X * _chunkWidth ,reduceChunks->Y * _chunkHeight ,reduceChunks->Width * _chunkWidth ,reduceChunks->Height * _chunkHeight };
 
-	ReducePossibilities(func, allFields, order);
+	ReducePossibilities(func, reduceFields, reducible, order);
 
 	Point next;
 	while (order.FindNext(next))
@@ -105,7 +113,7 @@ void WaveField::Collapse(WaveFunction* func, CellCollapse* collapse)
 		sides.insert({ next.first + 1, next.second });
 		sides.insert({ next.first, next.second - 1 });
 
-		ReducePossibilities(func, sides, order);
+		ReducePossibilities(func, sides, reducible, order);
 	}
 }
 
@@ -120,7 +128,7 @@ bool ShouldRemove(WaveFunction* func, int direction, Point toTest, PointList* ne
 	}
 	return true;
 }
-void WaveField::ReducePossibilities(WaveFunction* func, PointSet origins, CollapsingOrder& order)
+void WaveField::ReducePossibilities(WaveFunction* func, PointSet origins, Area& reducible, CollapsingOrder& order)
 {
 	while (origins.size() > 0)
 	{
@@ -131,36 +139,41 @@ void WaveField::ReducePossibilities(WaveFunction* func, PointSet origins, Collap
 		for (auto i = current->begin(); i != current->end();)
 		{
 			auto toTest = (*i);
-			auto left = At(next.first - 1, next.second);
-			auto up = At(next.first, next.second + 1);
-			auto right = At(next.first + 1, next.second);
-			auto down = At(next.first, next.second - 1);
-
-			if (ShouldRemove(func, 2, toTest, left) ||
-				ShouldRemove(func, 3, toTest, up) ||
-				ShouldRemove(func, 0, toTest, right) ||
-				ShouldRemove(func, 1, toTest, down))
+			if (reducible.Inside(next.first, next.second))
 			{
-				origins.insert({ next.first - 1, next.second });
-				origins.insert({ next.first , next.second + 1 });
-				origins.insert({ next.first + 1, next.second });
-				origins.insert({ next.first , next.second - 1 });
+				auto left = At(next.first - 1, next.second);
+				auto up = At(next.first, next.second + 1);
+				auto right = At(next.first + 1, next.second);
+				auto down = At(next.first, next.second - 1);
 
-				if (i == current->begin())
+				if (ShouldRemove(func, 2, toTest, left) ||
+					ShouldRemove(func, 3, toTest, up) ||
+					ShouldRemove(func, 0, toTest, right) ||
+					ShouldRemove(func, 1, toTest, down))
 				{
-					current->erase(i);
-					i = current->begin();
-				}
-				else
-				{
-					auto remove = i;
-					--i;
-					current->erase(remove);
-					++i;
+					origins.insert({ next.first - 1, next.second });
+					origins.insert({ next.first , next.second + 1 });
+					origins.insert({ next.first + 1, next.second });
+					origins.insert({ next.first , next.second - 1 });
+
+					if (i == current->begin())
+					{
+						current->erase(i);
+						i = current->begin();
+					}
+					else
+					{
+						auto remove = i;
+						--i;
+						current->erase(remove);
+						++i;
+					}
+
+					continue;
 				}
 			}
-			else
-				++i;
+
+			++i;
 		}
 		order.Update(next, static_cast<int>(current->size()));
 	}

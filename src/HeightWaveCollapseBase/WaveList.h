@@ -6,7 +6,7 @@
 
 namespace HeightWaveCollapseBase
 {
-	class Wrapper_Lookup WaveList
+	class Wrapper_Generate WaveList
 	{
 	public:
 		WaveList(int size);

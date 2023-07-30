@@ -7,6 +7,7 @@
     <ClInclude Include="WaveChunk.h" />
     <ClInclude Include="Point.h" />
     <ClInclude Include="CollapsingOrder.h" />
+    <ClInclude Include="Area.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WaveList.cpp" />
@@ -15,5 +16,6 @@
     <ClCompile Include="WaveChunk.cpp" />
     <ClCompile Include="CollapsingOrder.cpp" />
     <ClCompile Include="Export.cpp" />
+    <ClCompile Include="Area.cpp" />
   </ItemGroup>
 </Project>
